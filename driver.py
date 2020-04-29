@@ -3,7 +3,18 @@ from math import sqrt
 import pygame
 
 class Button:
+    """Class represents a GUI button and has a pressed down state and a normal state.
+    """
     def __init__(self, rect, text, normal_color, pressed_color, size):
+        """Initialize method for a Button.
+
+        Args:
+            rect: The pygame rectangle that this button should correspond to.
+            text: The text that should be present in the button.
+            normal_color: The color of the button when it is in it's normal state.
+            pressed_color: The color of the button when it is in it's pressed state.
+            size: Font size for the text.
+        """
         self.rect = rect
         self.text = text
 
@@ -20,6 +31,11 @@ class Button:
         self.is_pressed = False
     
     def draw(self, surface):
+        """Draws the button to the specified surface in either it's pressed or normal state.
+
+        Args:
+            surface: The surface on which we should draw the button.
+        """
         if self.is_hovered or self.is_pressed:
             color = self.pressed_color
             self.words = self.font.render(self.text, True, self.pressed_text_color)
@@ -27,9 +43,12 @@ class Button:
             color = self.normal_color
             self.words = self.font.render(self.text, True, self.normal_text_color)
         pygame.draw.rect(surface, color, self.rect)
+        # Make sure to blit the text on AFTER we draw the rectangle.
         surface.blit(self.words, self.rect.topleft)
     
     def hovered(self):
+        """Determines whether or not the rectangle for this button is being hovered over currently.
+        """
         if self.rect.collidepoint(pygame.mouse.get_pos()):
             if not self.is_hovered:
                 self.is_hovered = True
@@ -37,16 +56,36 @@ class Button:
             self.is_hovered = False
     
     def pressed(self, evnt):
+        """Determines whether or not the button has been pressed.
+
+        Args:
+            evnt: The current event being triggered by the user.
+        """
         if self.is_hovered:
             if evnt.type == pygame.MOUSEBUTTONDOWN and evnt.button == 1:
                 self.is_pressed = not self.is_pressed
     
     def update(self, x, y):
+        """Updates the rectangle's x and y coordinates so that it can move if needed.
+
+        Args:
+            x: The new x-coordinate location.
+            y: The new y-coordinate location.
+        """
         self.rect.x = x
         self.rect.y = y
 
 class Node:
+    """Represents a nodal object in the game. These are the stop points for the ants (where they will choose which neighboring node to travel to on a path).
+    """
     def __init__(self, node_id, color, rect):
+        """Initialization method for a Node.
+
+        Args:
+            node_id: The identification number we assign to this node.
+            color: The color of this node.
+            rect: The pygame rectangle object that this node should correspond to.
+        """
         self.node_id = node_id
         self.color = color
         self.rect = rect
@@ -55,23 +94,42 @@ class Node:
         self.info_font = pygame.font.SysFont('Arial', 38)
         self.info_text = ''
 
+        # Determines whether or not this node is a colony or food-bearing node.
         self.is_colony = False
         self.has_food = False
 
         self.neighbors = {}
     
     def add_neighbor(self, neighbor, connection):
+        """Adds a neighbor to this node's dictionary of neighbors.
+
+        Args:
+            neighbor: The node to act as a key for the path connecting this node to its neighbor.
+            connection: The path from this node to its neighbor.
+        """
         self.neighbors[neighbor] = connection
     
     def remove_neighbor(self, neighbor):
+        """Removes a neighbor from this node's dictionary of neighbors.
+
+        Args:
+            neighbor: The node to remove from the dictionary of neighbors.
+        """
         if neighbor in self.neighbors:
             del self.neighbors[neighbor]
 
     def draw(self, surface):
+        """Draws this node on the specified surface.
+
+        Args:
+            surface: The pygame surface to draw this node on.
+        """
+        # Nodes are in the shape of circles.
         pygame.draw.circle(surface, self.color, self.rect.center, self.radius)
         text = self.font.render(f'{self.node_id}', True, (255, 255, 255))
         surface.blit(text, self.rect.topleft)
 
+        # Determine the text to be displayed on the node.
         if self.has_food:
             self.info_text = 'F'
         elif self.is_colony:
@@ -83,11 +141,26 @@ class Node:
         surface.blit(text, loc)
         
     def update(self, x, y):
+        """Updates the node's location if it is moved.
+
+        Args:
+            x: The new x-coordinate location of this node.
+            y: The new y-coordinate location of this node.
+        """
         self.rect.x = x
         self.rect.y = y
 
 class Path:
+    """Represents a path object. These are connections between nodes.
+    """
     def __init__(self, color, node1, node2):
+        """Initialization method for a path object.
+
+        Args:
+            color: The color of this path.
+            node1: One of the nodes to be connected as neighbors.
+            node2: The other node to be connected as neighbors.
+        """
         self.color = color
         self.node1 = node1
         self.node2 = node2
@@ -95,23 +168,40 @@ class Path:
         self.end_pos = node2.rect.center
         self.width = 20
 
+        # Pheromone value determines how likely an ant is to travel along this path.
         self.pheromone = 1
-
         self.font = pygame.font.SysFont('Arial', 28)
     
     def get_dist(self, node_size):
+        """Returns the length/distance of this path.
+
+        Args:
+            node_size: Used to calculate the distance so that the numbers are not incredibly large due to pixel measurements.
+        """
         x_diff = self.node2.rect.centerx - self.node1.rect.centerx
         y_diff = self.node2.rect.centery - self.node1.rect.centery
         return int(sqrt(x_diff**2 + y_diff**2) // node_size)
 
     def draw(self, surface):
+        """Draws this path on the specified surface.
+
+        Args:
+            surface: The pygame surface to draw this path on.
+        """
         pygame.draw.line(surface, self.color, self.start_pos, self.end_pos, self.width)
         center_point = ((self.end_pos[0] + self.start_pos[0])/2, (self.end_pos[1] + self.start_pos[1])/2)
         text = self.font.render(f'{self.get_dist(80)}', True, (255, 255, 255))
         surface.blit(text, center_point)
 
 class Ant:
+    """Represents an ant that will move along the nodal pathways.
+    """
     def __init__(self, colony_node):
+        """Initialization method for an ant object.
+
+        Args:
+            colony_node: The node from which all ants start at and will return to.
+        """
         self.colony_node = colony_node
         self.path = []
         self.curr_node = self.colony_node
@@ -119,9 +209,13 @@ class Ant:
         self.speed = 5
     
     def clear_path(self):
+        """Removes all nodes along this ant's path.
+        """
         self.path.clear()
     
     def move(self):
+        """TODO ant's movement method
+        """
         print('moving')
 
 if __name__ == "__main__":

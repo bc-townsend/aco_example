@@ -1,4 +1,5 @@
 """
+    NOTE: the functionality of this class is transitioning to the driver.py for now.
     Ant Colony Optimization path finding algorithm visualization.
     Author: Brandon Townsend
     Date: 4 April 2020
