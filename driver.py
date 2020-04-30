@@ -1,4 +1,5 @@
 import sys
+import random as rand
 from math import sqrt
 import pygame
 
@@ -196,27 +197,63 @@ class Path:
 class Ant:
     """Represents an ant that will move along the nodal pathways.
     """
-    def __init__(self, colony_node):
+    def __init__(self, rect, colony_node):
         """Initialization method for an ant object.
 
         Args:
             colony_node: The node from which all ants start at and will return to.
         """
+        self.rect = rect
+        self.radius = self.rect.width // 2
         self.colony_node = colony_node
         self.path = []
         self.curr_node = self.colony_node
         self.prev_node = None
-        self.speed = 5
+        self.color = (0, 0, 0)
+        self.at_node = True
+    
+    def draw(self, surface):
+        """Draws this ant on the specified surface.
+
+        Args:
+            surface: The pygame surface to draw this ant on.
+        """
+        pygame.draw.circle(surface, self.color, self.rect.center, self.radius)
     
     def clear_path(self):
         """Removes all nodes along this ant's path.
         """
         self.path.clear()
+        self.prev_node = None
     
-    def move(self):
+    def choose(self):
         """TODO ant's movement method
         """
-        print('moving')
+        alpha = 1
+        beta = 1
+        # Calculating sum of all possible neighboring path pheromone levels and distances.
+        total = 0.0
+        neighbors = self.curr_node.neighbors
+        for p in neighbors.values():
+            total += (p.pheromone)**alpha * (1 / p.get_dist(80))**beta
+        
+        prob = 0.0
+        choice = rand.random()
+        for n in neighbors.keys():
+            prob += ((neighbors[n].pheromone)**alpha * (1 / neighbors[n].get_dist(80))**beta) / total
+            if choice < prob:
+                self.prev_node = self.curr_node
+                self.curr_node = n
+                self.at_node = False
+
+    def move(self):
+        dist = sqrt((self.curr_node.rect.centerx - self.rect.centerx)**2 + (self.curr_node.rect.centery - self.rect.centery)**2)
+        if dist == 0:
+            self.at_node = True
+        else:
+            self.rect.x = self.rect.x + 1
+            self.rect.y = self.rect.y + 1
+        
 
 if __name__ == "__main__":
     WHITE = (255, 255, 255)
@@ -263,9 +300,11 @@ if __name__ == "__main__":
 
     # Setup for 'Add Food' button.
     BUTTON_Y += BUTTON_HEIGHT + 20
-    BUTTON_WIDTH = (SCREEN_WIDTH // 5) - 20
-    BUTTON_HEIGHT = 40
     add_food_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'ADD FOOD', (0, 80, 0), (0, 160, 0), 34)
+
+    # Setup for 'Run' button.
+    BUTTON_Y += BUTTON_HEIGHT + 20
+    run_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'RUN', (100, 100, 100), (200, 200, 200), 36)
 
     # Setup the trash can for items.
     TRASH_WIDTH = (SCREEN_WIDTH // 5) - 20
@@ -285,14 +324,17 @@ if __name__ == "__main__":
     # Paths between nodes.
     paths = []
 
+    # Setup for ant colony.
+    colony = []
+    NUM_ANTS = 1
+
     while RUNNING:
         # Handling to game events.
         for event in pygame.event.get():
             # Check to see if button is pressed.
-            if not add_food_button.is_pressed:
-                add_path_button.pressed(event)
-            if not add_path_button.is_pressed:
-                add_food_button.pressed(event)
+            add_path_button.pressed(event)
+            add_food_button.pressed(event)
+            run_button.pressed(event)
 
             # User exiting the game.
             if event.type == pygame.QUIT:
@@ -303,55 +345,56 @@ if __name__ == "__main__":
                     RUNNING = False
 
             # User pressing mouse button (1) down.
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    for i, node in enumerate(nodes):
-                        dx = node.rect.centerx - event.pos[EVENT_X]
-                        dy = node.rect.centery - event.pos[EVENT_Y]
-                        dist_sq = dx**2 + dy**2
+            if not run_button.is_pressed:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        for i, node in enumerate(nodes):
+                            dx = node.rect.centerx - event.pos[EVENT_X]
+                            dy = node.rect.centery - event.pos[EVENT_Y]
+                            dist_sq = dx**2 + dy**2
 
-                        if dist_sq <= NODE_RADIUS**2:
-                            # Below is selection for adding paths between nodes.
-                            if add_path_button.is_pressed and node.rect.x >= MENU_WIDTH:
-                                if FROM_NODE is None:
-                                    FROM_NODE = i
+                            if dist_sq <= NODE_RADIUS**2:
+                                # Below is selection for adding paths between nodes.
+                                if add_path_button.is_pressed and node.rect.x >= MENU_WIDTH:
+                                    if FROM_NODE is None:
+                                        FROM_NODE = i
+                                    else:
+                                        if FROM_NODE != i:
+                                            path = Path(PATH_COLOR, nodes[int(FROM_NODE)], nodes[i])
+                                            paths.append(path)
+                                            nodes[int(FROM_NODE)].add_neighbor(nodes[i], path)
+                                            nodes[i].add_neighbor(nodes[int(FROM_NODE)], path)
+                                        FROM_NODE = None
+                                
+                                elif add_food_button.is_pressed and node.rect.x >= MENU_WIDTH:
+                                    if not node.is_colony:
+                                        node.has_food = not node.has_food
+
+                                # Otherwise, just select it for repositioning.
                                 else:
-                                    if FROM_NODE != i:
-                                        path = Path(PATH_COLOR, nodes[int(FROM_NODE)], nodes[i])
-                                        paths.append(path)
-                                        nodes[int(FROM_NODE)].add_neighbor(nodes[i], path)
-                                        nodes[i].add_neighbor(nodes[int(FROM_NODE)], path)
-                                    FROM_NODE = None
-                            
-                            elif add_food_button.is_pressed and node.rect.x >= MENU_WIDTH:
-                                if not node.is_colony:
-                                    node.has_food = not node.has_food
+                                    SELECTED = i
+                                selected_offset_x = node.rect.x - event.pos[EVENT_X]
+                                selected_offset_y = node.rect.y - event.pos[EVENT_Y]
 
-                            # Otherwise, just select it for repositioning.
-                            else:
-                                SELECTED = i
-                            selected_offset_x = node.rect.x - event.pos[EVENT_X]
-                            selected_offset_y = node.rect.y - event.pos[EVENT_Y]
+                # User releasing mouse button (1).
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 1:
+                        SELECTED = None
+                
+                # User moving the mouse on screen.
+                elif event.type == pygame.MOUSEMOTION:
+                    if SELECTED is not None:
+                        selected_node = nodes[int(SELECTED)]
+                        new_x = event.pos[EVENT_X] + selected_offset_x
+                        new_y = event.pos[EVENT_Y] + selected_offset_y
+                        selected_node.update(new_x, new_y)
 
-            # User releasing mouse button (1).
-            elif event.type == pygame.MOUSEBUTTONUP:
-                if event.button == 1:
-                    SELECTED = None
-            
-            # User moving the mouse on screen.
-            elif event.type == pygame.MOUSEMOTION:
-                if SELECTED is not None:
-                    selected_node = nodes[int(SELECTED)]
-                    new_x = event.pos[EVENT_X] + selected_offset_x
-                    new_y = event.pos[EVENT_Y] + selected_offset_y
-                    selected_node.update(new_x, new_y)
-
-                    # Updating paths.
-                    for path in paths:
-                        if path.node1 is selected_node:
-                            path.start_pos = selected_node.rect.center
-                        if path.node2 is selected_node:
-                            path.end_pos = selected_node.rect.center
+                        # Updating paths.
+                        for path in paths:
+                            if path.node1 is selected_node:
+                                path.start_pos = selected_node.rect.center
+                            if path.node2 is selected_node:
+                                path.end_pos = selected_node.rect.center
 
         # Blitting objects onto surfaces.
         screen.fill(SCREEN_COLOR)
@@ -361,10 +404,13 @@ if __name__ == "__main__":
         # Drawing any objects onto the screen. Should draw them from furthest back to closest.
         pygame.draw.rect(menu, TRASH_COLOR, trash)
         menu.blit(TRASH_TEXT, trash.topleft)
-        add_path_button.hovered()
-        add_path_button.draw(menu)
-        add_food_button.hovered()
-        add_food_button.draw(menu)
+        if not run_button.is_pressed:
+            add_path_button.hovered()
+            add_path_button.draw(menu)
+            add_food_button.hovered()
+            add_food_button.draw(menu)
+        run_button.hovered()
+        run_button.draw(menu)
 
         # Remove any nodes that collide with the trash can.
         REMOVE_INDEX = trash.collidelist(nodes)
@@ -406,6 +452,24 @@ if __name__ == "__main__":
         # Drawing all of the nodes.
         for node in nodes:
             node.draw(screen)
+
+        # Running the actual ant colony optimization simulation.
+        if run_button.is_pressed and len(colony) <= 0:
+            COLONY_NODE = nodes[0]
+            ant_size = COLONY_NODE.radius / 2
+            left_top = (COLONY_NODE.rect.centerx - ant_size / 2, COLONY_NODE.rect.centery - ant_size /2)
+            for i in range(NUM_ANTS):
+                colony.append(Ant(pygame.Rect(left_top, (ant_size, ant_size)), COLONY_NODE))
+        elif not run_button.is_pressed and len(colony) > 0:
+            colony.clear()
+        
+        #TODO Change ant movement to be based on deltatime clock ticks.
+        for ant in colony:
+            if ant.at_node:
+                ant.choose()
+            else:
+                ant.move()
+            ant.draw(screen)
 
         # Update the display to show all the drawn objects on screen.
         pygame.display.flip()
