@@ -99,25 +99,29 @@ class Node:
         self.is_colony = False
         self.has_food = False
 
-        self.neighbors = {}
+        self.neighbors = []
+        self.path_to_neighbor = []
     
     def add_neighbor(self, neighbor, connection):
-        """Adds a neighbor to this node's dictionary of neighbors.
+        """Adds a neighbor to this node's list of neighbors.
 
         Args:
-            neighbor: The node to act as a key for the path connecting this node to its neighbor.
+            neighbor: The neighboring node.
             connection: The path from this node to its neighbor.
         """
-        self.neighbors[neighbor] = connection
+        self.neighbors.append(neighbor)
+        self.path_to_neighbor.append(connection)
     
     def remove_neighbor(self, neighbor):
-        """Removes a neighbor from this node's dictionary of neighbors.
+        """Removes a neighbor from this node's list of neighbors.
 
         Args:
-            neighbor: The node to remove from the dictionary of neighbors.
+            neighbor: The node to remove from the list of neighbors.
         """
         if neighbor in self.neighbors:
-            del self.neighbors[neighbor]
+            index = self.neighbors.index(neighbor)
+            self.neighbors.remove(neighbor)
+            self.path_to_neighbor.pop(index)
 
     def draw(self, surface):
         """Draws this node on the specified surface.
@@ -151,6 +155,12 @@ class Node:
         self.rect.x = x
         self.rect.y = y
 
+    def __eq__(self, obj):
+        return isinstance(obj, Node) and obj.node_id == self.node_id
+    
+    def __str__(self):
+        return f'Node({self.node_id})'
+
 class Path:
     """Represents a path object. These are connections between nodes.
     """
@@ -167,7 +177,7 @@ class Path:
         self.node2 = node2
         self.start_pos = node1.rect.center
         self.end_pos = node2.rect.center
-        self.width = 20
+        self.width = 30
 
         # Pheromone value determines how likely an ant is to travel along this path.
         self.pheromone = 1
@@ -193,6 +203,9 @@ class Path:
         center_point = ((self.end_pos[0] + self.start_pos[0])/2, (self.end_pos[1] + self.start_pos[1])/2)
         text = self.font.render(f'{self.get_dist(80)}', True, (255, 255, 255))
         surface.blit(text, center_point)
+    
+    def __eq__(self, obj):
+        return isinstance(obj, Path) and self.node1 is obj.node1 and self.node2 is obj.node2
 
 class Ant:
     """Represents an ant that will move along the nodal pathways.
@@ -207,10 +220,12 @@ class Ant:
         self.radius = self.rect.width // 2
         self.colony_node = colony_node
         self.path = []
+        self.path.append(self.colony_node)
         self.curr_node = self.colony_node
         self.prev_node = None
         self.color = (0, 0, 0)
         self.at_node = True
+        self.px_amount = 5
     
     def draw(self, surface):
         """Draws this ant on the specified surface.
@@ -234,26 +249,45 @@ class Ant:
         # Calculating sum of all possible neighboring path pheromone levels and distances.
         total = 0.0
         neighbors = self.curr_node.neighbors
-        for p in neighbors.values():
-            total += (p.pheromone)**alpha * (1 / p.get_dist(80))**beta
+        pathways = self.curr_node.path_to_neighbor
+        for i, neighbor in enumerate(neighbors):
+            if neighbor is not self.prev_node:
+                total += (pathways[i].pheromone**alpha) * (1 / pathways[i].get_dist(80))**beta
         
-        prob = 0.0
-        choice = rand.random()
-        for n in neighbors.keys():
-            prob += ((neighbors[n].pheromone)**alpha * (1 / neighbors[n].get_dist(80))**beta) / total
-            if choice < prob:
-                self.prev_node = self.curr_node
-                self.curr_node = n
-                self.at_node = False
+        # Above seems to be working fine.
+        if total != 0:
+            prob = 0.0
+            choice = rand.random()
+            for i in range(len(neighbors)):
+                if neighbors[i] is not self.prev_node:
+                    prob += ((pathways[i].pheromone)**alpha * (1/pathways[i].get_dist(80))**beta) / total
+                    
+                    if choice <= prob:
+                        self.prev_node = self.curr_node
+                        self.curr_node = neighbors[i]
+                        self.path.append(self.curr_node)
+                        self.at_node = False
+                        break
+        
+        print('/'*80)
 
-    def move(self):
-        dist = sqrt((self.curr_node.rect.centerx - self.rect.centerx)**2 + (self.curr_node.rect.centery - self.rect.centery)**2)
-        if dist == 0:
+    def move(self, deltatime):
+        """Ants move from their previous node to the node they have selected (self.curr_node).
+
+        Args:
+
+        """
+        ant = pygame.math.Vector2(self.rect.center)
+        node = pygame.math.Vector2(self.curr_node.rect.center)
+        dist = ant.distance_to(node)
+
+        if dist <= 5:
             self.at_node = True
         else:
-            self.rect.x = self.rect.x + 1
-            self.rect.y = self.rect.y + 1
-        
+            pathing = node - ant
+            pathing /= dist
+            pathing *= self.px_amount
+            self.rect.center += pathing
 
 if __name__ == "__main__":
     WHITE = (255, 255, 255)
@@ -267,7 +301,7 @@ if __name__ == "__main__":
 
     # Setup background screen.
     SCREEN_WIDTH = 1000
-    SCREEN_HEIGHT = 600
+    SCREEN_HEIGHT = 800
     SCREEN_COLOR = (30, 30, 30)
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     screen.fill(SCREEN_COLOR)
@@ -328,7 +362,10 @@ if __name__ == "__main__":
     colony = []
     NUM_ANTS = 1
 
+    clock = pygame.time.Clock()
     while RUNNING:
+        deltatime = clock.tick(60)
+
         # Handling to game events.
         for event in pygame.event.get():
             # Check to see if button is pressed.
@@ -462,13 +499,14 @@ if __name__ == "__main__":
                 colony.append(Ant(pygame.Rect(left_top, (ant_size, ant_size)), COLONY_NODE))
         elif not run_button.is_pressed and len(colony) > 0:
             colony.clear()
+            print('-'*80)
         
         #TODO Change ant movement to be based on deltatime clock ticks.
         for ant in colony:
             if ant.at_node:
                 ant.choose()
             else:
-                ant.move()
+                ant.move(deltatime)
             ant.draw(screen)
 
         # Update the display to show all the drawn objects on screen.
