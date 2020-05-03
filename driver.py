@@ -235,6 +235,8 @@ class Ant:
             surface: The pygame surface to draw this ant on.
         """
         pygame.draw.circle(surface, self.color, self.rect.center, self.radius)
+        if self.found_food:
+            pygame.draw.circle(surface, (0, 255, 0), self.rect.center, self.radius // 2)
     
     def clear_path(self):
         """Removes all nodes along this ant's path.
@@ -246,14 +248,17 @@ class Ant:
     def choose(self):
         """The ants will make a choice as to which node they will attempt to travel to.
         """
-        if self.found_food:
+        if self.curr_node is self.colony_node and self.found_food:
+            self.found_food = False
+            self.clear_path()
+        elif self.found_food:
             self.prev_node = self.curr_node
             self.curr_node = self.path.pop()
             self.at_node = False
-            if self.curr_node is self.colony_node:
-                self.found_food = False
-                self.clear_path()
         else:
+            if self.curr_node.has_food:
+                self.found_food = True
+                return
             alpha = 1
             beta = 1
             # Calculating sum of all possible neighboring path pheromone levels and distances.
@@ -261,23 +266,23 @@ class Ant:
             neighbors = self.curr_node.neighbors
             pathways = self.curr_node.path_to_neighbor
             for i, neighbor in enumerate(neighbors):
-                if neighbor is not self.prev_node:
+                if neighbor is not self.prev_node or len(neighbors) == 1:
                     total += (pathways[i].pheromone**alpha) * (1 / pathways[i].get_dist(80))**beta
             
             # Above seems to be working fine.
             if total != 0:
                 prob = 0.0
                 choice = rand.random()
-                for i in range(len(neighbors)):
-                    if neighbors[i] is not self.prev_node:
+                for i, neighbor in enumerate(neighbors):
+                    if neighbor is not self.prev_node or len(neighbors) == 1:
                         prob += ((pathways[i].pheromone)**alpha * (1/pathways[i].get_dist(80))**beta) / total
                         
                         if choice <= prob:
                             self.prev_node = self.curr_node
-                            self.curr_node = neighbors[i]
+                            self.curr_node = neighbor
                             self.path.append(self.curr_node)
                             self.at_node = False
-                            self.found_food = self.curr_node.has_food
+                            #self.found_food = self.curr_node.has_food
                             break
 
     def move(self, deltatime):
