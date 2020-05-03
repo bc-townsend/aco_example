@@ -225,6 +225,7 @@ class Ant:
         self.prev_node = None
         self.color = (0, 0, 0)
         self.at_node = True
+        self.found_food = False
         self.px_amount = 5
     
     def draw(self, surface):
@@ -240,36 +241,44 @@ class Ant:
         """
         self.path.clear()
         self.prev_node = None
+        self.path.append(self.colony_node)
     
     def choose(self):
-        """TODO ant's movement method
+        """The ants will make a choice as to which node they will attempt to travel to.
         """
-        alpha = 1
-        beta = 1
-        # Calculating sum of all possible neighboring path pheromone levels and distances.
-        total = 0.0
-        neighbors = self.curr_node.neighbors
-        pathways = self.curr_node.path_to_neighbor
-        for i, neighbor in enumerate(neighbors):
-            if neighbor is not self.prev_node:
-                total += (pathways[i].pheromone**alpha) * (1 / pathways[i].get_dist(80))**beta
-        
-        # Above seems to be working fine.
-        if total != 0:
-            prob = 0.0
-            choice = rand.random()
-            for i in range(len(neighbors)):
-                if neighbors[i] is not self.prev_node:
-                    prob += ((pathways[i].pheromone)**alpha * (1/pathways[i].get_dist(80))**beta) / total
-                    
-                    if choice <= prob:
-                        self.prev_node = self.curr_node
-                        self.curr_node = neighbors[i]
-                        self.path.append(self.curr_node)
-                        self.at_node = False
-                        break
-        
-        print('/'*80)
+        if self.found_food:
+            self.prev_node = self.curr_node
+            self.curr_node = self.path.pop()
+            self.at_node = False
+            if self.curr_node is self.colony_node:
+                self.found_food = False
+                self.clear_path()
+        else:
+            alpha = 1
+            beta = 1
+            # Calculating sum of all possible neighboring path pheromone levels and distances.
+            total = 0.0
+            neighbors = self.curr_node.neighbors
+            pathways = self.curr_node.path_to_neighbor
+            for i, neighbor in enumerate(neighbors):
+                if neighbor is not self.prev_node:
+                    total += (pathways[i].pheromone**alpha) * (1 / pathways[i].get_dist(80))**beta
+            
+            # Above seems to be working fine.
+            if total != 0:
+                prob = 0.0
+                choice = rand.random()
+                for i in range(len(neighbors)):
+                    if neighbors[i] is not self.prev_node:
+                        prob += ((pathways[i].pheromone)**alpha * (1/pathways[i].get_dist(80))**beta) / total
+                        
+                        if choice <= prob:
+                            self.prev_node = self.curr_node
+                            self.curr_node = neighbors[i]
+                            self.path.append(self.curr_node)
+                            self.at_node = False
+                            self.found_food = self.curr_node.has_food
+                            break
 
     def move(self, deltatime):
         """Ants move from their previous node to the node they have selected (self.curr_node).
@@ -302,7 +311,7 @@ if __name__ == "__main__":
     # Setup background screen.
     SCREEN_WIDTH = 1000
     SCREEN_HEIGHT = 800
-    SCREEN_COLOR = (30, 30, 30)
+    SCREEN_COLOR = (60, 60, 60)
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     screen.fill(SCREEN_COLOR)
     
