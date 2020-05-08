@@ -308,6 +308,12 @@ class Ant:
             self.rect.center += pathing
 
     def update_pheromone(self, from_node, to_node):
+        """Updates the pheromone trail on the path from one node to another.
+
+        Args:
+            from_node: The node we are traveling from.
+            to_node: The node we are traveling to.
+        """
         q = 1
         path = None
         for i, node in enumerate(from_node.neighbors):
