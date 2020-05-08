@@ -222,6 +222,7 @@ class Ant:
         self.colony_node = colony_node
         self.path = []
         self.path.append(self.colony_node)
+        self.path_length = 0
         self.curr_node = self.colony_node
         self.prev_node = None
         self.color = (0, 0, 0)
@@ -242,6 +243,7 @@ class Ant:
     def clear_path(self):
         """Removes all nodes along this ant's path.
         """
+        self.path_length = 0
         self.path.clear()
         self.prev_node = None
         self.path.append(self.colony_node)
@@ -283,6 +285,7 @@ class Ant:
                             self.prev_node = self.curr_node
                             self.curr_node = neighbor
                             self.path.append(self.curr_node)
+                            self.path_length += pathways[i].get_dist(80)
                             self.at_node = False
                             break
 
@@ -313,7 +316,7 @@ class Ant:
                 break
         
         if path is not None:
-            path.pheromone += (1 - path.phero_evap) * (q / path.get_dist(80))
+            path.pheromone += (1 - path.phero_evap) * (q / self.path_length)
 
 if __name__ == "__main__":
     WHITE = (255, 255, 255)
@@ -386,7 +389,7 @@ if __name__ == "__main__":
 
     # Setup for ant colony.
     colony = []
-    NUM_ANTS = 100
+    NUM_ANTS = 70
 
     clock = pygame.time.Clock()
     while RUNNING:
