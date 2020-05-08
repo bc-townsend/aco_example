@@ -181,6 +181,7 @@ class Path:
 
         # Pheromone value determines how likely an ant is to travel along this path.
         self.pheromone = 1
+        self.phero_evap = 0.5
         self.font = pygame.font.SysFont('Arial', 28)
     
     def get_dist(self, node_size):
@@ -254,6 +255,7 @@ class Ant:
         elif self.found_food:
             self.prev_node = self.curr_node
             self.curr_node = self.path.pop()
+            self.update_pheromone(self.prev_node, self.curr_node)
             self.at_node = False
         else:
             if self.curr_node.has_food:
@@ -282,14 +284,13 @@ class Ant:
                             self.curr_node = neighbor
                             self.path.append(self.curr_node)
                             self.at_node = False
-                            #self.found_food = self.curr_node.has_food
                             break
 
     def move(self, deltatime):
         """Ants move from their previous node to the node they have selected (self.curr_node).
 
         Args:
-
+            deltatime: The time between frames in the game.
         """
         ant = pygame.math.Vector2(self.rect.center)
         node = pygame.math.Vector2(self.curr_node.rect.center)
@@ -302,6 +303,17 @@ class Ant:
             pathing /= dist
             pathing *= self.px_amount
             self.rect.center += pathing
+
+    def update_pheromone(self, from_node, to_node):
+        q = 1
+        path = None
+        for i, node in enumerate(from_node.neighbors):
+            if node is to_node:
+                path = from_node.path_to_neighbor[i]
+                break
+        
+        if path is not None:
+            path.pheromone += (1 - path.phero_evap) * (q / path.get_dist(80))
 
 if __name__ == "__main__":
     WHITE = (255, 255, 255)
@@ -374,7 +386,7 @@ if __name__ == "__main__":
 
     # Setup for ant colony.
     colony = []
-    NUM_ANTS = 1
+    NUM_ANTS = 100
 
     clock = pygame.time.Clock()
     while RUNNING:
@@ -513,9 +525,9 @@ if __name__ == "__main__":
                 colony.append(Ant(pygame.Rect(left_top, (ant_size, ant_size)), COLONY_NODE))
         elif not run_button.is_pressed and len(colony) > 0:
             colony.clear()
-            print('-'*80)
+            for path in paths:
+                path.pheromone = 1
         
-        #TODO Change ant movement to be based on deltatime clock ticks.
         for ant in colony:
             if ant.at_node:
                 ant.choose()
