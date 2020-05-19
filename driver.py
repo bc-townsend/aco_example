@@ -361,18 +361,18 @@ if __name__ == "__main__":
     NODE_SPAWN = pygame.Rect(NODE_LOCATION, NODE_LOCATION, NODE_RADIUS*2, NODE_RADIUS*2)
 
     # Setup for 'Add Path' button.
-    BUTTON_Y = 200
+    BUTTON_Y = 140
     BUTTON_WIDTH = (SCREEN_WIDTH // 5) - 20
     BUTTON_HEIGHT = 40
     PATH_COLOR = (0, 60, 180)
     add_path_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'ADD PATH', PATH_COLOR, (0, 100, 200), 36)
 
     # Setup for 'Add Food' button.
-    BUTTON_Y += BUTTON_HEIGHT + 20
+    BUTTON_Y += BUTTON_HEIGHT + 140
     add_food_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'ADD FOOD', (0, 80, 0), (0, 160, 0), 34)
 
     # Setup for 'Run' button.
-    BUTTON_Y += BUTTON_HEIGHT + 20
+    BUTTON_Y += BUTTON_HEIGHT + 140
     run_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'RUN', (100, 100, 100), (200, 200, 200), 36)
 
     # Setup the trash can for items.
@@ -382,6 +382,37 @@ if __name__ == "__main__":
     TRASH_COLOR = (40, 40, 40)
     TRASH_FONT = pygame.font.SysFont('Arial', 53)
     TRASH_TEXT = TRASH_FONT.render('TRASH', True, WHITE)
+
+    # Information text.
+    INFO_FONT = pygame.font.SysFont('Arial', 16)
+
+    path_text = ['Toggle the \'Add Path\'',
+                 'button in order to add',
+                 'paths between nodes.',
+                 'When toggled on, click the',
+                 'two nodes you would like',
+                 'to add a path between.']
+    path_info = []
+    for line in path_text:
+        path_info.append(INFO_FONT.render(line, False, WHITE))
+    
+    food_text = ['Toggle the \'Add Food\'',
+                 'button in order to add',
+                 'food to nodes. When',
+                 'toggled on, click a node',
+                 'to add/remove food',
+                 'from it.']
+    food_info = []
+    for line in food_text:
+        food_info.append(INFO_FONT.render(line, False, WHITE))
+    
+    run_text = ['Toggle the \'Run\' button',
+                'in order to have the ants',
+                'find the shortest path to',
+                'the food!']
+    run_info = []
+    for line in run_text:
+        run_info.append(INFO_FONT.render(line, False, WHITE))
 
     # Start running the game application.
     RUNNING = True
@@ -483,6 +514,19 @@ if __name__ == "__main__":
             add_food_button.draw(menu)
         run_button.hovered()
         run_button.draw(menu)
+
+        # Blitting button information text.
+        y_pos = add_path_button.rect.bottom + 5
+        for i, line in enumerate(path_info):
+            menu.blit(line, (add_path_button.rect.left, y_pos + (i*16) + (5*i)))
+        
+        y_pos = add_food_button.rect.bottom + 5
+        for i, line in enumerate(food_info):
+            menu.blit(line, (add_food_button.rect.left, y_pos + (i*16) + (5*i)))
+        
+        y_pos = run_button.rect.bottom + 5
+        for i, line in enumerate(run_info):
+            menu.blit(line, (run_button.rect.left, y_pos + (i*16) + (5*i)))
 
         # Remove any nodes that collide with the trash can.
         REMOVE_INDEX = trash.collidelist(nodes)
