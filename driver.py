@@ -181,7 +181,7 @@ class Path:
 
         # Pheromone value determines how likely an ant is to travel along this path.
         self.pheromone = 1
-        self.phero_evap = 0.5
+        self.phero_evap = 0.1
         self.font = pygame.font.SysFont('Arial', 28)
     
     def get_dist(self, node_size):
@@ -192,7 +192,7 @@ class Path:
         """
         x_diff = self.node2.rect.centerx - self.node1.rect.centerx
         y_diff = self.node2.rect.centery - self.node1.rect.centery
-        return int(sqrt(x_diff**2 + y_diff**2) // node_size)
+        return sqrt(x_diff**2 + y_diff**2) / node_size
 
     def draw(self, surface):
         """Draws this path on the specified surface.
@@ -202,11 +202,19 @@ class Path:
         """
         pygame.draw.line(surface, self.color, self.start_pos, self.end_pos, self.width)
         center_point = ((self.end_pos[0] + self.start_pos[0])/2, (self.end_pos[1] + self.start_pos[1])/2)
-        text = self.font.render(f'{self.get_dist(80)}', True, (255, 255, 255))
+        text = self.font.render(f'{round(self.get_dist(80), 1)}', True, (255, 255, 255))
         surface.blit(text, center_point)
+    
+    def phero_evaporation(self):
+        """Controls how much pheromone this path loses.
+        """
+        self.pheromone -= (self.pheromone * self.phero_evap)
     
     def __eq__(self, obj):
         return isinstance(obj, Path) and self.node1 is obj.node1 and self.node2 is obj.node2
+    
+    def __str__(self):
+        return f'Path {self.node1.node_id}->{self.node2.node_id}. Phero: {self.pheromone}'
 
 class Ant:
     """Represents an ant that will move along the nodal pathways.
@@ -229,6 +237,7 @@ class Ant:
         self.at_node = True
         self.found_food = False
         self.px_amount = 5
+        self.initial_exploration = True
     
     def draw(self, surface):
         """Draws this ant on the specified surface.
@@ -247,6 +256,7 @@ class Ant:
         self.path.clear()
         self.prev_node = None
         self.path.append(self.colony_node)
+        self.initial_exploration = False
     
     def choose(self):
         """The ants will make a choice as to which node they will attempt to travel to.
@@ -264,14 +274,17 @@ class Ant:
                 self.found_food = True
                 return
             alpha = 1
-            beta = 1
+            # beta = 2
             # Calculating sum of all possible neighboring path pheromone levels and distances.
             total = 0.0
             neighbors = self.curr_node.neighbors
             pathways = self.curr_node.path_to_neighbor
             for i, neighbor in enumerate(neighbors):
                 if neighbor is not self.prev_node or len(neighbors) == 1:
-                    total += (pathways[i].pheromone**alpha) * (1 / pathways[i].get_dist(80))**beta
+                    if not self.initial_exploration:
+                        total += pathways[i].pheromone**alpha #* (1 / pathways[i].get_dist(80))**beta
+                    else:
+                        total += 1
             
             # Above seems to be working fine.
             if total != 0:
@@ -279,7 +292,10 @@ class Ant:
                 choice = rand.random()
                 for i, neighbor in enumerate(neighbors):
                     if neighbor is not self.prev_node or len(neighbors) == 1:
-                        prob += ((pathways[i].pheromone)**alpha * (1/pathways[i].get_dist(80))**beta) / total
+                        if not self.initial_exploration:
+                            prob += (pathways[i].pheromone**alpha) / total #* (1/pathways[i].get_dist(80))**beta) / total
+                        else:
+                            prob += 1 / total
                         
                         if choice <= prob:
                             self.prev_node = self.curr_node
@@ -289,11 +305,8 @@ class Ant:
                             self.at_node = False
                             break
 
-    def move(self, deltatime):
+    def move(self):
         """Ants move from their previous node to the node they have selected (self.curr_node).
-
-        Args:
-            deltatime: The time between frames in the game.
         """
         ant = pygame.math.Vector2(self.rect.center)
         node = pygame.math.Vector2(self.curr_node.rect.center)
@@ -322,7 +335,7 @@ class Ant:
                 break
         
         if path is not None:
-            path.pheromone += (1 - path.phero_evap) * (q / self.path_length)
+            path.pheromone += (q / self.path_length)
 
 if __name__ == "__main__":
     WHITE = (255, 255, 255)
@@ -375,6 +388,10 @@ if __name__ == "__main__":
     BUTTON_Y += BUTTON_HEIGHT + 140
     run_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'RUN', (100, 100, 100), (200, 200, 200), 36)
 
+    # Setup for 'Clear' button.
+    BUTTON_Y += BUTTON_HEIGHT + 140
+    clear_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'CLEAR', (40, 40, 40), (210, 210, 210), 36)
+
     # Setup the trash can for items.
     TRASH_WIDTH = (SCREEN_WIDTH // 5) - 20
     TRASH_HEIGHT = 60
@@ -426,11 +443,12 @@ if __name__ == "__main__":
 
     # Setup for ant colony.
     colony = []
-    NUM_ANTS = 70
+    NUM_ANTS = 80
 
     clock = pygame.time.Clock()
+    phero_clock = 0
     while RUNNING:
-        deltatime = clock.tick(60)
+        phero_clock += clock.tick(60)
 
         # Handling to game events.
         for event in pygame.event.get():
@@ -438,6 +456,7 @@ if __name__ == "__main__":
             add_path_button.pressed(event)
             add_food_button.pressed(event)
             run_button.pressed(event)
+            clear_button.pressed(event)
 
             # User exiting the game.
             if event.type == pygame.QUIT:
@@ -451,6 +470,10 @@ if __name__ == "__main__":
             if not run_button.is_pressed:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
+                        if clear_button.is_pressed:
+                            nodes.clear()
+                            paths.clear()
+                            clear_button.is_pressed = False
                         for i, node in enumerate(nodes):
                             dx = node.rect.centerx - event.pos[EVENT_X]
                             dy = node.rect.centery - event.pos[EVENT_Y]
@@ -512,6 +535,8 @@ if __name__ == "__main__":
             add_path_button.draw(menu)
             add_food_button.hovered()
             add_food_button.draw(menu)
+            clear_button.hovered()
+            clear_button.draw(menu)
         run_button.hovered()
         run_button.draw(menu)
 
@@ -561,9 +586,17 @@ if __name__ == "__main__":
             nodes.append(Node(ID, NODE_COLOR, pygame.Rect(NODE_LOCATION, NODE_LOCATION, NODE_RADIUS*2, NODE_RADIUS*2)))
             ID += 1
 
-        # Drawing all paths between the nodes.
+        # Drawing all paths between the nodes and performing pheromone evaporation.
+        should_evap = (phero_clock / 1000) > 1 and run_button.is_pressed
         for path in paths:
             path.draw(screen)
+            if should_evap:
+                path.phero_evaporation()
+            #print(path)
+        
+        if should_evap:
+            should_evap = False
+            phero_clock = 0
 
         # Drawing all of the nodes.
         for node in nodes:
@@ -572,6 +605,7 @@ if __name__ == "__main__":
         # Running the actual ant colony optimization simulation.
         if run_button.is_pressed and len(colony) <= 0:
             COLONY_NODE = nodes[0]
+            NUM_ANTS *= len(COLONY_NODE.neighbors)
             ant_size = COLONY_NODE.radius / 2
             left_top = (COLONY_NODE.rect.centerx - ant_size / 2, COLONY_NODE.rect.centery - ant_size /2)
             for i in range(NUM_ANTS):
@@ -585,7 +619,7 @@ if __name__ == "__main__":
             if ant.at_node:
                 ant.choose()
             else:
-                ant.move(deltatime)
+                ant.move()
             ant.draw(screen)
 
         # Update the display to show all the drawn objects on screen.
