@@ -1,12 +1,12 @@
 import sys
 import pygame
 
-from ant import Ant
-from button import Button
-from node import Node
-from path import Path
+from .ant import Ant
+from .button import Button
+from .node import Node
+from .path import Path
 
-if __name__ == "__main__":
+def run():
     WHITE = (255, 255, 255)
     BLACK = (0, 0, 0)
     EVENT_X = 0
