@@ -1,10 +1,11 @@
 import sys
 import pygame
 
-from .ant import Ant
-from .button import Button
-from .node import Node
-from .path import Path
+from aco_example.ant import Ant
+from aco_example.button import Button
+from aco_example.node import Node
+from aco_example.path import Path
+
 
 def run():
     WHITE = (255, 255, 255)
@@ -22,7 +23,7 @@ def run():
     SCREEN_COLOR = (60, 60, 60)
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     screen.fill(SCREEN_COLOR)
-    
+
     # Setup menu surface.
     MENU_WIDTH = SCREEN_WIDTH // 5
     MENU_HEIGHT = SCREEN_HEIGHT
@@ -36,30 +37,34 @@ def run():
     NODE_COLOR = (0, 80, 200)
     nodes = []
     ID = 0
-    nodes.append(Node(ID, NODE_COLOR, pygame.Rect(NODE_LOCATION, NODE_LOCATION, NODE_RADIUS*2, NODE_RADIUS*2)))
+    nodes.append(Node(ID, NODE_COLOR, pygame.Rect(NODE_LOCATION, NODE_LOCATION, NODE_RADIUS * 2, NODE_RADIUS * 2)))
     nodes[0].is_colony = True
     ID += 1
 
-    NODE_SPAWN = pygame.Rect(NODE_LOCATION, NODE_LOCATION, NODE_RADIUS*2, NODE_RADIUS*2)
+    NODE_SPAWN = pygame.Rect(NODE_LOCATION, NODE_LOCATION, NODE_RADIUS * 2, NODE_RADIUS * 2)
 
     # Setup for 'Add Path' button.
     BUTTON_Y = 140
     BUTTON_WIDTH = (SCREEN_WIDTH // 5) - 20
     BUTTON_HEIGHT = 40
     PATH_COLOR = (0, 60, 180)
-    add_path_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'ADD PATH', PATH_COLOR, (0, 100, 200), 36)
+    add_path_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'ADD PATH', PATH_COLOR,
+                             (0, 100, 200), 36)
 
     # Setup for 'Add Food' button.
     BUTTON_Y += BUTTON_HEIGHT + 140
-    add_food_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'ADD FOOD', (0, 80, 0), (0, 160, 0), 34)
+    add_food_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'ADD FOOD', (0, 80, 0),
+                             (0, 160, 0), 34)
 
     # Setup for 'Run' button.
     BUTTON_Y += BUTTON_HEIGHT + 140
-    run_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'RUN', (100, 100, 100), (200, 200, 200), 36)
+    run_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'RUN', (100, 100, 100), (200, 200, 200),
+                        36)
 
     # Setup for 'Clear' button.
     BUTTON_Y += BUTTON_HEIGHT + 140
-    clear_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'CLEAR', (40, 40, 40), (210, 210, 210), 36)
+    clear_button = Button(pygame.Rect(10, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT), 'CLEAR', (40, 40, 40),
+                          (210, 210, 210), 36)
 
     # Setup the trash can for items.
     TRASH_WIDTH = (SCREEN_WIDTH // 5) - 20
@@ -81,7 +86,7 @@ def run():
     path_info = []
     for line in path_text:
         path_info.append(INFO_FONT.render(line, False, WHITE))
-    
+
     food_text = ['Toggle the \'Add Food\'',
                  'button in order to add',
                  'food to nodes. When',
@@ -91,7 +96,7 @@ def run():
     food_info = []
     for line in food_text:
         food_info.append(INFO_FONT.render(line, False, WHITE))
-    
+
     run_text = ['Toggle the \'Run\' button',
                 'in order to have the ants',
                 'find the shortest path to',
@@ -146,9 +151,9 @@ def run():
                         for i, node in enumerate(nodes):
                             dx = node.rect.centerx - event.pos[EVENT_X]
                             dy = node.rect.centery - event.pos[EVENT_Y]
-                            dist_sq = dx**2 + dy**2
+                            dist_sq = dx ** 2 + dy ** 2
 
-                            if dist_sq <= NODE_RADIUS**2:
+                            if dist_sq <= NODE_RADIUS ** 2:
                                 # Below is selection for adding paths between nodes.
                                 if add_path_button.is_pressed and node.rect.x >= MENU_WIDTH:
                                     if FROM_NODE is None:
@@ -160,7 +165,7 @@ def run():
                                             nodes[int(FROM_NODE)].add_neighbor(nodes[i], path)
                                             nodes[i].add_neighbor(nodes[int(FROM_NODE)], path)
                                         FROM_NODE = None
-                                
+
                                 elif add_food_button.is_pressed and node.rect.x >= MENU_WIDTH:
                                     if not node.is_colony:
                                         node.has_food = not node.has_food
@@ -175,7 +180,7 @@ def run():
                 elif event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 1:
                         SELECTED = None
-                
+
                 # User moving the mouse on screen.
                 elif event.type == pygame.MOUSEMOTION:
                     if SELECTED is not None:
@@ -212,15 +217,15 @@ def run():
         # Blitting button information text.
         y_pos = add_path_button.rect.bottom + 5
         for i, line in enumerate(path_info):
-            menu.blit(line, (add_path_button.rect.left, y_pos + (i*16) + (5*i)))
-        
+            menu.blit(line, (add_path_button.rect.left, y_pos + (i * 16) + (5 * i)))
+
         y_pos = add_food_button.rect.bottom + 5
         for i, line in enumerate(food_info):
-            menu.blit(line, (add_food_button.rect.left, y_pos + (i*16) + (5*i)))
-        
+            menu.blit(line, (add_food_button.rect.left, y_pos + (i * 16) + (5 * i)))
+
         y_pos = run_button.rect.bottom + 5
         for i, line in enumerate(run_info):
-            menu.blit(line, (run_button.rect.left, y_pos + (i*16) + (5*i)))
+            menu.blit(line, (run_button.rect.left, y_pos + (i * 16) + (5 * i)))
 
         # Remove any nodes that collide with the trash can.
         REMOVE_INDEX = trash.collidelist(nodes)
@@ -237,22 +242,24 @@ def run():
                 if path.node1 is to_remove:
                     path.node2.remove_neighbor(path.node1)
                     path_removal.append(path)
-                
+
                 if path.node2 is to_remove:
                     path.node1.remove_neighbor(path.node2)
                     path_removal.append(path)
-            
+
             for path in path_removal:
                 paths.remove(path)
 
         # Making sure we never run out of nodes.
         if len(nodes) <= 0:
-            nodes.append(Node(ID, NODE_COLOR, pygame.Rect(NODE_LOCATION, NODE_LOCATION, NODE_RADIUS*2, NODE_RADIUS*2)))
+            nodes.append(
+                Node(ID, NODE_COLOR, pygame.Rect(NODE_LOCATION, NODE_LOCATION, NODE_RADIUS * 2, NODE_RADIUS * 2)))
             nodes[0].is_colony = True
             ID += 1
-        
+
         if NODE_SPAWN.collidelist(nodes) == -1:
-            nodes.append(Node(ID, NODE_COLOR, pygame.Rect(NODE_LOCATION, NODE_LOCATION, NODE_RADIUS*2, NODE_RADIUS*2)))
+            nodes.append(
+                Node(ID, NODE_COLOR, pygame.Rect(NODE_LOCATION, NODE_LOCATION, NODE_RADIUS * 2, NODE_RADIUS * 2)))
             ID += 1
 
         # Drawing all paths between the nodes and performing pheromone evaporation.
@@ -261,8 +268,8 @@ def run():
             path.draw(screen)
             if should_evap:
                 path.phero_evaporation()
-            #print(path)
-        
+            # print(path)
+
         if should_evap:
             should_evap = False
             phero_clock = 0
@@ -276,14 +283,14 @@ def run():
             COLONY_NODE = nodes[0]
             NUM_ANTS *= len(COLONY_NODE.neighbors)
             ant_size = COLONY_NODE.radius / 2
-            left_top = (COLONY_NODE.rect.centerx - ant_size / 2, COLONY_NODE.rect.centery - ant_size /2)
+            left_top = (COLONY_NODE.rect.centerx - ant_size / 2, COLONY_NODE.rect.centery - ant_size / 2)
             for i in range(NUM_ANTS):
                 colony.append(Ant(pygame.Rect(left_top, (ant_size, ant_size)), COLONY_NODE))
         elif not run_button.is_pressed and len(colony) > 0:
             colony.clear()
             for path in paths:
                 path.pheromone = 1
-        
+
         for ant in colony:
             if ant.at_node:
                 ant.choose()

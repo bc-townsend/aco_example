@@ -1,9 +1,11 @@
 import pygame
 import random as rand
 
+
 class Ant:
     """Represents an ant that will move along the nodal pathways.
     """
+
     def __init__(self, rect, colony_node):
         """Initialization method for an ant object.
 
@@ -23,7 +25,7 @@ class Ant:
         self.found_food = False
         self.px_amount = 5
         self.initial_exploration = True
-    
+
     def draw(self, surface):
         """Draws this ant on the specified surface.
 
@@ -33,7 +35,7 @@ class Ant:
         pygame.draw.circle(surface, self.color, self.rect.center, self.radius)
         if self.found_food:
             pygame.draw.circle(surface, (0, 255, 0), self.rect.center, self.radius // 2)
-    
+
     def clear_path(self):
         """Removes all nodes along this ant's path.
         """
@@ -42,7 +44,7 @@ class Ant:
         self.prev_node = None
         self.path.append(self.colony_node)
         self.initial_exploration = False
-    
+
     def choose(self):
         """The ants will make a choice as to which node they will attempt to travel to.
         """
@@ -67,10 +69,10 @@ class Ant:
             for i, neighbor in enumerate(neighbors):
                 if neighbor is not self.prev_node or len(neighbors) == 1:
                     if not self.initial_exploration:
-                        total += pathways[i].pheromone**alpha #* (1 / pathways[i].get_dist(80))**beta
+                        total += pathways[i].pheromone ** alpha  # * (1 / pathways[i].get_dist(80))**beta
                     else:
                         total += 1
-            
+
             # Above seems to be working fine.
             if total != 0:
                 prob = 0.0
@@ -78,10 +80,11 @@ class Ant:
                 for i, neighbor in enumerate(neighbors):
                     if neighbor is not self.prev_node or len(neighbors) == 1:
                         if not self.initial_exploration:
-                            prob += (pathways[i].pheromone**alpha) / total #* (1/pathways[i].get_dist(80))**beta) / total
+                            prob += (pathways[
+                                         i].pheromone ** alpha) / total  # * (1/pathways[i].get_dist(80))**beta) / total
                         else:
                             prob += 1 / total
-                        
+
                         if choice <= prob:
                             self.prev_node = self.curr_node
                             self.curr_node = neighbor
@@ -118,6 +121,6 @@ class Ant:
             if node is to_node:
                 path = from_node.path_to_neighbor[i]
                 break
-        
+
         if path is not None:
             path.pheromone += (q / self.path_length)

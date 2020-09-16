@@ -1,8 +1,11 @@
 import pygame
 
+
 class Node:
-    """Represents a nodal object in the game. These are the stop points for the ants (where they will choose which neighboring node to travel to on a path).
+    """Represents a nodal object in the game. These are the stop points for the ants (where they will choose which
+    neighboring node to travel to on a path).
     """
+
     def __init__(self, node_id, color, rect):
         """Initialization method for a Node.
 
@@ -25,7 +28,7 @@ class Node:
 
         self.neighbors = []
         self.path_to_neighbor = []
-    
+
     def add_neighbor(self, neighbor, connection):
         """Adds a neighbor to this node's list of neighbors.
 
@@ -35,7 +38,7 @@ class Node:
         """
         self.neighbors.append(neighbor)
         self.path_to_neighbor.append(connection)
-    
+
     def remove_neighbor(self, neighbor):
         """Removes a neighbor from this node's list of neighbors.
 
@@ -64,11 +67,12 @@ class Node:
         elif self.is_colony:
             self.info_text = 'C'
         else:
-            self.info_text = ''
+            self.info_text = None
+
         text = self.info_font.render(self.info_text, True, (255, 255, 255))
         loc = (self.rect.centerx - (self.radius / 3), self.rect.centery - (self.radius / 2))
         surface.blit(text, loc)
-        
+
     def update(self, x, y):
         """Updates the node's location if it is moved.
 
@@ -81,6 +85,6 @@ class Node:
 
     def __eq__(self, obj):
         return isinstance(obj, Node) and obj.node_id == self.node_id
-    
+
     def __str__(self):
         return f'Node({self.node_id})'
