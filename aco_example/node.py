@@ -71,7 +71,8 @@ class Node:
 
         text = self.info_font.render(self.info_text, True, (255, 255, 255))
         loc = (self.rect.centerx - (self.radius / 3), self.rect.centery - (self.radius / 2))
-        surface.blit(text, loc)
+        if self.info_text is not None:
+            surface.blit(text, loc)
 
     def update(self, x, y):
         """Updates the node's location if it is moved.

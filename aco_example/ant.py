@@ -67,21 +67,23 @@ class Ant:
             neighbors = self.curr_node.neighbors
             pathways = self.curr_node.path_to_neighbor
             for i, neighbor in enumerate(neighbors):
+                # Checking len(neighbors) == 1 to make sure we can return the the previous node if needed.
                 if neighbor is not self.prev_node or len(neighbors) == 1:
                     if not self.initial_exploration:
+                        # Since we are using actual "ant" movement in their decisions, adding the distance part seems to
+                        # remove some consistency.
                         total += pathways[i].pheromone ** alpha  # * (1 / pathways[i].get_dist(80))**beta
                     else:
                         total += 1
 
-            # Above seems to be working fine.
             if total != 0:
                 prob = 0.0
                 choice = rand.random()
                 for i, neighbor in enumerate(neighbors):
                     if neighbor is not self.prev_node or len(neighbors) == 1:
                         if not self.initial_exploration:
-                            prob += (pathways[
-                                         i].pheromone ** alpha) / total  # * (1/pathways[i].get_dist(80))**beta) / total
+                            prob += (pathways[i].pheromone ** alpha) / total
+                            # * (1/pathways[i].get_dist(80))**beta) / total
                         else:
                             prob += 1 / total
 
